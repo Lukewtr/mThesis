@@ -1,0 +1,144 @@
+# Import the necessary modules
+import torch
+from torch.utils.data import DataLoader, Dataset
+from torchvision import datasets
+from torch.autograd import Variable
+import numpy as np
+from utils.utils import sample_image, sample_image_rnn
+
+cuda = True if torch.cuda.is_available() else False
+
+# Dataset for captions
+class rnnMNIST_Dataset(Dataset):
+
+    def __init__(self, root, train, download, transform):
+        self.mnist = datasets.MNIST(
+            root=root,
+            train=train,
+            download=download,
+            transform=transform
+        )
+
+        self.mapping = {0: "this is zero", 1: "this is one", 2: "this is two", 3: "this is three", 4: "this is four",
+                        5: "this is five", 6: "this is six", 7: "this is seven", 8: "this is eight",
+                        9: "this is nine"}
+
+        self.encoded_vocab = {"this": 0, "is": 1, "zero": 2, "one": 3, "two": 4, "three": 5, "four": 6,
+                              "five": 7, "six": 8, "seven": 9, "eight": 10, "nine": 11}
+
+    def __len__(self):
+        return len(self.mnist)
+
+    def __getitem__(self, index: int):
+        image, number = self.mnist[index]
+        caption = self.mapping[number]
+        encoded_caption = torch.tensor([self.encoded_vocab[word] for word in caption.split(" ")])
+
+        return image, caption, encoded_caption
+
+
+# Loss functions
+adversarial_loss = torch.nn.MSELoss()
+if cuda:
+    adversarial_loss.cuda()
+
+
+def training_phase(generator, discriminator, opt, dataloader, dataset, caption_usage):
+    # Optimizers
+    optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
+    optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
+
+    FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+    LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
+
+    for epoch in range(opt.n_epochs):
+        for i, data in enumerate(dataloader):
+
+            if caption_usage == False:
+                (imgs, labels) = data
+            else:
+                (imgs, captions, encoded_captions) = data
+
+            batch_size = imgs.shape[0]
+
+            # Adversarial ground truths
+            valid = Variable(FloatTensor(batch_size, 1).fill_(1.0), requires_grad=False)
+            fake = Variable(FloatTensor(batch_size, 1).fill_(0.0), requires_grad=False)
+
+            # Configure input
+            real_imgs = Variable(imgs.type(FloatTensor))
+            if caption_usage == False:
+                discriminator_input = Variable(labels.type(LongTensor))
+            else:
+                discriminator_input = Variable(encoded_captions.type(LongTensor))
+
+            # -----------------
+            #  Train Generator
+            # -----------------
+
+            optimizer_G.zero_grad()
+
+            # Sample noise and labels/captions as generator input
+            z = Variable(FloatTensor(np.random.normal(0, 1, (batch_size, opt.latent_dim))))
+
+            gen_labels = np.random.randint(0, opt.n_classes, batch_size)
+
+            if caption_usage == False:
+                generator_input = Variable(LongTensor(gen_labels))
+            else:
+                gen_captions = [dataset.mapping[key] for key in gen_labels]
+
+                gen_encoded_captions = []
+                for caption in gen_captions:
+                    gen_encoded_captions.append(tuple([dataset.encoded_vocab[word] for word in caption.split(" ")]))
+
+                generator_input = Variable(
+                    LongTensor(
+                        gen_encoded_captions
+                    )
+                )
+
+            # Generate a batch of images
+            gen_imgs = generator(z, generator_input)
+
+            # Loss measures generator's ability to fool the discriminator
+            validity = discriminator(gen_imgs, generator_input)
+            g_loss = adversarial_loss(validity, valid)
+
+            g_loss.backward()
+            optimizer_G.step()
+
+            # ---------------------
+            #  Train Discriminator
+            # ---------------------
+
+            optimizer_D.zero_grad()
+
+            # Loss for real images
+            validity_real = discriminator(real_imgs, discriminator_input)
+            d_real_loss = adversarial_loss(validity_real, valid)
+
+            # Loss for fake images
+            validity_fake = discriminator(gen_imgs.detach(), generator_input)
+            d_fake_loss = adversarial_loss(validity_fake, fake)
+
+            # Total discriminator loss
+            d_loss = (d_real_loss + d_fake_loss) / 2
+
+            d_loss.backward()
+            optimizer_D.step()
+
+            print(
+                "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
+                % (epoch, opt.n_epochs, i, len(dataloader), d_loss.item(), g_loss.item())
+            )
+
+            batches_done = epoch * len(dataloader) + i
+            printed = (epoch, i)
+            if batches_done % opt.sample_interval == 0:
+                if caption_usage:
+                    sample_image_rnn(printed, opt, generator, dataloader, dataset)
+                else:
+                    sample_image(printed, opt, generator, dataloader)
+
+
