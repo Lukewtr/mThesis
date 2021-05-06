@@ -12,6 +12,8 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+from pathlib import Path
+
 from src.Training import rnnMNIST_Dataset, training_phase
 from src.CGAN import Generator, Discriminator
 from src.RNN_CGAN import RNN_Generator, RNN_Discriminator
@@ -120,15 +122,32 @@ if cuda:
     discriminator.cuda()
 
 
+
 # ---------------
 # Training phase:
 # ---------------
-training_phase(generator, discriminator, opt, dataloader, dataset)
-
 if opt.caption_usage:
-    sample_image_rnn("TEST", opt, generator, dataloader, dataset)
+    g_model_file = "models/generator_RNN.pth"
+    d_model_file = "models/discriminator_RNN.pth"
 else:
-    sample_image("TEST", opt, generator, dataloader)
+    g_model_file = "models/generator.pth"
+    d_model_file = "models/discriminator.pth"
+
+myG = Path(g_model_file)
+myD = Path(d_model_file)
+
+if opt.pre_loading and myG.exists() and myD.exists():
+    generator.load_state_dict(torch.load(g_model_file))
+    discriminator.load_state_dict(torch.load(d_model_file))
+    print("Loaded PyTorch Model State for GENERATOR and DISCRIMINATOR FROM pth files")
+else:
+    training_phase(generator, discriminator, opt, dataloader, dataset)
+
+# Testing the results:
+if opt.caption_usage:
+    sample_image_rnn("END", opt, generator, dataloader, dataset)
+else:
+    sample_image("END", opt, generator, dataloader)
 
 if opt.caption_usage:
     print_image_rnn("this is eight", opt, generator, dataset)
@@ -136,15 +155,29 @@ else:
     print_image(8, opt, generator)
 
 
+
+# -------------
+# Saving model:
+# -------------
+os.makedirs("models", exist_ok=True)
+
+torch.save(generator.state_dict(), g_model_file)
+print("Saved PyTorch Model State of GENERATOR to '%s'" %g_model_file)
+
+torch.save(discriminator.state_dict(), d_model_file)
+print("Saved PyTorch Model State of GENERATOR to '%s'" %d_model_file)
+
+
+
 # Generating a set of 10 images per class:
 if opt.caption_usage:
-    sample_image_rnn("Testing", opt, generator, dataloader, dataset)
+    sample_image_rnn("Testing10x10", opt, generator, dataloader, dataset)
     img = mpimg.imread('data/generated_rnn/imageTesting.png')
     imgplot = plt.imshow(img)
     plt.show()
     #plt.savefig('data/generated_rnn/imagesTesting.png')
 else:
-    sample_image("Testing", opt, generator, dataloader)
+    sample_image("Testing10x10", opt, generator, dataloader)
     img = mpimg.imread('data/generated/imageTesting.png')
     imgplot = plt.imshow(img)
     plt.show()
