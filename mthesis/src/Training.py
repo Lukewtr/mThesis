@@ -43,7 +43,7 @@ if cuda:
     adversarial_loss.cuda()
 
 
-def training_phase(generator, discriminator, opt, dataloader, dataset, caption_usage):
+def training_phase(generator, discriminator, opt, dataloader, dataset):
     # Optimizers
     optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
     optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
@@ -54,10 +54,10 @@ def training_phase(generator, discriminator, opt, dataloader, dataset, caption_u
     for epoch in range(opt.n_epochs):
         for i, data in enumerate(dataloader):
 
-            if caption_usage == False:
-                (imgs, labels) = data
-            else:
+            if opt.caption_usage:
                 (imgs, captions, encoded_captions) = data
+            else:
+                (imgs, labels) = data
 
             batch_size = imgs.shape[0]
 
@@ -67,10 +67,10 @@ def training_phase(generator, discriminator, opt, dataloader, dataset, caption_u
 
             # Configure input
             real_imgs = Variable(imgs.type(FloatTensor))
-            if caption_usage == False:
-                discriminator_input = Variable(labels.type(LongTensor))
-            else:
+            if opt.caption_usage:
                 discriminator_input = Variable(encoded_captions.type(LongTensor))
+            else:
+                discriminator_input = Variable(labels.type(LongTensor))
 
             # -----------------
             #  Train Generator
@@ -83,9 +83,7 @@ def training_phase(generator, discriminator, opt, dataloader, dataset, caption_u
 
             gen_labels = np.random.randint(0, opt.n_classes, batch_size)
 
-            if caption_usage == False:
-                generator_input = Variable(LongTensor(gen_labels))
-            else:
+            if opt.caption_usage:
                 gen_captions = [dataset.mapping[key] for key in gen_labels]
 
                 gen_encoded_captions = []
@@ -97,6 +95,8 @@ def training_phase(generator, discriminator, opt, dataloader, dataset, caption_u
                         gen_encoded_captions
                     )
                 )
+            else:
+                generator_input = Variable(LongTensor(gen_labels))
 
             # Generate a batch of images
             gen_imgs = generator(z, generator_input)
@@ -136,7 +136,7 @@ def training_phase(generator, discriminator, opt, dataloader, dataset, caption_u
             batches_done = epoch * len(dataloader) + i
             printed = (epoch, i)
             if batches_done % opt.sample_interval == 0:
-                if caption_usage:
+                if opt.caption_usage:
                     sample_image_rnn(printed, opt, generator, dataloader, dataset)
                 else:
                     sample_image(printed, opt, generator, dataloader)

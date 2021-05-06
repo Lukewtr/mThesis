@@ -18,19 +18,14 @@ from src.RNN_CGAN import RNN_Generator, RNN_Discriminator
 from utils.utils import sample_image, sample_image_rnn, print_image, print_image_rnn
 
 
-# -------------------------------------------------------------------------------
-# Set this flag to False if you want to use the normal CGAN conditioned on labels
-caption_usage = False
-# -------------------------------------------------------------------------------
-# Set this flag to False if you don't want to dislay the testing features
-testing = False
-# -------------------------------------------------------------------------------
-
-
 # ------------------------
 # Hyperparameter selection
 # ------------------------
 parser = argparse.ArgumentParser()
+
+parser.add_argument("--caption_usage", type=bool, default=False, help="if True, implement caption embeddings")
+parser.add_argument("--testing", type=bool, default=False, help="Set this flag to False if you don't want to display the testing features")
+
 parser.add_argument("--n_epochs", type=int, default=500, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
 
@@ -66,7 +61,7 @@ else:
 
 # Create the necessary directories
 os.makedirs("data", exist_ok=True)
-if caption_usage:
+if opt.caption_usage:
     os.makedirs("data/generated_rnn", exist_ok=True)
     dataset = rnnMNIST_Dataset
     folder = "data/rnn_mnist"
@@ -90,10 +85,10 @@ dataset = dataset(
 
 
 # Testing the dataset
-if testing:
+if opt.testing:
     index = np.random.randint(len(dataset))
     print(f"Regular caption: {dataset[index][1]}")
-    if caption_usage:
+    if opt.caption_usage:
         print(f"Encoded caption: {dataset[index][2]}")
     plt.imshow(dataset[index][0][0,:,:])
 
@@ -112,7 +107,7 @@ dataloader = torch.utils.data.DataLoader(
 # --------------------------------------
 # Initialize generator and discriminator
 # --------------------------------------
-if caption_usage:
+if opt.caption_usage:
     vocab_size = len(dataset.encoded_vocab)
     generator = RNN_Generator(vocab_size, opt, img_shape)
     discriminator = RNN_Discriminator(vocab_size, opt, img_shape)
@@ -128,28 +123,28 @@ if cuda:
 # ---------------
 # Training phase:
 # ---------------
-training_phase(generator, discriminator, opt, dataloader, dataset, caption_usage)
+training_phase(generator, discriminator, opt, dataloader, dataset)
 
-if caption_usage:
-    sample_image_rnn(10, "TEST", dataset)
+if opt.caption_usage:
+    sample_image_rnn("TEST", opt, generator, dataloader, dataset)
 else:
-    sample_image(10, "TEST")
+    sample_image("TEST", opt, generator, dataloader)
 
-if caption_usage:
-    print_image_rnn("this is eight")
+if opt.caption_usage:
+    print_image_rnn("this is eight", opt, generator, dataset)
 else:
-    print_image(8)
+    print_image(8, opt, generator)
 
 
 # Generating a set of 10 images per class:
-if caption_usage:
-    sample_image_rnn(10, "Testing", dataset)
+if opt.caption_usage:
+    sample_image_rnn("Testing", opt, generator, dataloader, dataset)
     img = mpimg.imread('data/generated_rnn/imagesTesting.png')
     imgplot = plt.imshow(img)
     plt.show()
     #plt.savefig('data/generated_rnn/imagesTesting.png')
 else:
-    sample_image(10, "Testing")
+    sample_image("Testing", opt, generator, dataloader)
     img = mpimg.imread('data/generated/imagesTesting.png')
     imgplot = plt.imshow(img)
     plt.show()

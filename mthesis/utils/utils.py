@@ -126,7 +126,7 @@ def print_image(label, opt, generator):
 
 
 # Generating a single image conditioned on the given caption:
-def print_image_rnn(caption, dataset, opt, generator):
+def print_image_rnn(caption, opt, generator, dataset):
     if not isinstance(caption, str):
         caption = "this is zero"
 
