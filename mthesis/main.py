@@ -139,13 +139,13 @@ else:
 # Generating a set of 10 images per class:
 if opt.caption_usage:
     sample_image_rnn("Testing", opt, generator, dataloader, dataset)
-    img = mpimg.imread('data/generated_rnn/imagesTesting.png')
+    img = mpimg.imread('data/generated_rnn/imageTesting.png')
     imgplot = plt.imshow(img)
     plt.show()
     #plt.savefig('data/generated_rnn/imagesTesting.png')
 else:
     sample_image("Testing", opt, generator, dataloader)
-    img = mpimg.imread('data/generated/imagesTesting.png')
+    img = mpimg.imread('data/generated/imageTesting.png')
     imgplot = plt.imshow(img)
     plt.show()
 
