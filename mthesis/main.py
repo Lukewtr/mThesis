@@ -25,9 +25,9 @@ from utils.utils import sample_image, sample_image_rnn, print_image, print_image
 # ------------------------
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--caption_usage", type=bool, default=False, help="if True, implement caption embeddings")
-parser.add_argument("--testing", type=bool, default=False, help="Set this flag to False if you don't want to display the testing features")
-parser.add_argument("--pre_loading", type=bool, default=True, help="if True, use the saved pre-trained models")
+parser.add_argument("--caption_usage", action="store_true", help="Set this flag if you want to implement caption embeddings")
+parser.add_argument("--testing", action="store_true", help="Set this flag if you want to display the testing features")
+parser.add_argument("--pre_loading", action="store_true", help="Set this flag if you want to use the saved pre-trained models")
 
 parser.add_argument("--n_epochs", type=int, default=500, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
