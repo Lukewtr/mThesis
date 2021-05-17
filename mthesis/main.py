@@ -47,7 +47,7 @@ parser.add_argument("--n_classes", type=int, default=10, help="number of classes
 parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
 parser.add_argument("--channels", type=int, default=1, help="number of image channels")
 
-parser.add_argument("--sample_interval", type=int, default=500, help="interval between sampling images")
+parser.add_argument("--sample_interval", type=int, default=500, help="interval between sampling images and saving models")
 parser.add_argument('-f')
 opt = parser.parse_args()
 print(opt)
@@ -127,6 +127,8 @@ if cuda:
 # ---------------
 # Training phase:
 # ---------------
+os.makedirs("models", exist_ok=True)
+
 if opt.caption_usage:
     g_model_file = "models/generator_RNN.pth"
     d_model_file = "models/discriminator_RNN.pth"
@@ -160,7 +162,6 @@ else:
 # -------------
 # Saving model:
 # -------------
-os.makedirs("models", exist_ok=True)
 
 torch.save(generator.state_dict(), g_model_file)
 print("Saved PyTorch Model State of GENERATOR to '%s'" %g_model_file)
