@@ -52,11 +52,11 @@ def training_phase(generator, discriminator, opt, dataloader, dataset):
     LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
 
     if opt.caption_usage:
-        g_model_file = "models/AUXgenerator_RNN.pth"
-        d_model_file = "models/AUXdiscriminator_RNN.pth"
+        g_model_fileAUX = "models/AUXgenerator_RNN.pth"
+        d_model_fileAUX = "models/AUXdiscriminator_RNN.pth"
     else:
-        g_model_file = "models/AUXgenerator.pth"
-        d_model_file = "models/AUXdiscriminator.pth"
+        g_model_fileAUX = "models/AUXgenerator.pth"
+        d_model_fileAUX = "models/AUXdiscriminator.pth"
 
     for epoch in range(opt.n_epochs):
         for i, data in enumerate(dataloader):
@@ -148,11 +148,11 @@ def training_phase(generator, discriminator, opt, dataloader, dataset):
                 else:
                     sample_image(printed, opt, generator, dataloader)
 
-                torch.save(generator.state_dict(), g_model_file)
-                print("Saved PyTorch Model State of GENERATOR to '%s'" % g_model_file)
+                torch.save(generator.state_dict(), g_model_fileAUX)
+                print("Saved PyTorch Model State of GENERATOR to '%s'" % g_model_fileAUX)
 
-                torch.save(discriminator.state_dict(), d_model_file)
-                print("Saved PyTorch Model State of GENERATOR to '%s'" % d_model_file)
+                torch.save(discriminator.state_dict(), d_model_fileAUX)
+                print("Saved PyTorch Model State of GENERATOR to '%s'" % d_model_fileAUX)
 
 
 

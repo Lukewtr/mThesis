@@ -28,8 +28,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--caption_usage", action="store_true", help="Set this flag if you want to implement caption embeddings")
 parser.add_argument("--testing", action="store_true", help="Set this flag if you want to display the testing features")
 parser.add_argument("--pre_loading", action="store_true", help="Set this flag if you want to use the saved pre-trained models")
+parser.add_argument("--start_again", action="store_true", help="Set this flag if you want to start again the training from random")
 
-parser.add_argument("--n_epochs", type=int, default=500, help="number of epochs of training")
+parser.add_argument("--n_epochs", type=int, default=100, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
 
 parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
@@ -47,7 +48,7 @@ parser.add_argument("--n_classes", type=int, default=10, help="number of classes
 parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
 parser.add_argument("--channels", type=int, default=1, help="number of image channels")
 
-parser.add_argument("--sample_interval", type=int, default=500, help="interval between sampling images and saving models")
+parser.add_argument("--sample_interval", type=int, default=200, help="interval between sampling images and saving models")
 parser.add_argument('-f')
 opt = parser.parse_args()
 print(opt)
@@ -132,30 +133,42 @@ os.makedirs("models", exist_ok=True)
 if opt.caption_usage:
     g_model_file = "models/generator_RNN.pth"
     d_model_file = "models/discriminator_RNN.pth"
+    g_model_fileAUX = "models/AUXgenerator_RNN.pth"
+    d_model_fileAUX = "models/AUXdiscriminator_RNN.pth"
 else:
     g_model_file = "models/generator.pth"
     d_model_file = "models/discriminator.pth"
+    g_model_fileAUX = "models/AUXgenerator.pth"
+    d_model_fileAUX = "models/AUXdiscriminator.pth"
 
 myG = Path(g_model_file)
 myD = Path(d_model_file)
+
+myG_AUX = Path(g_model_fileAUX)
+myD_AUX = Path(d_model_fileAUX)
 
 if opt.pre_loading and myG.exists() and myD.exists():
     generator.load_state_dict(torch.load(g_model_file))
     discriminator.load_state_dict(torch.load(d_model_file))
     print("Loaded PyTorch Model State for GENERATOR and DISCRIMINATOR FROM pth files")
 else:
+    if not opt.start_again and myG_AUX.exists() and myD_AUX.exists():
+        generator.load_state_dict(torch.load(g_model_fileAUX))
+        discriminator.load_state_dict(torch.load(d_model_fileAUX))
     training_phase(generator, discriminator, opt, dataloader, dataset)
 
-# Testing the results:
-if opt.caption_usage:
-    sample_image_rnn("END", opt, generator, dataloader, dataset)
-else:
-    sample_image("END", opt, generator, dataloader)
 
-if opt.caption_usage:
-    print_image_rnn("this is eight", opt, generator, dataset)
-else:
-    print_image(8, opt, generator)
+# Testing the results:
+if opt.testing:
+    if opt.caption_usage:
+        sample_image_rnn("END", opt, generator, dataloader, dataset)
+    else:
+        sample_image("END", opt, generator, dataloader)
+
+    if opt.caption_usage:
+        print_image_rnn("this is eight", opt, generator, dataset)
+    else:
+        print_image(8, opt, generator)
 
 
 
@@ -174,13 +187,13 @@ print("Saved PyTorch Model State of GENERATOR to '%s'" %d_model_file)
 # Generating a set of 10 images per class:
 if opt.caption_usage:
     sample_image_rnn("Testing10x10", opt, generator, dataloader, dataset)
-    img = mpimg.imread('data/generated_rnn/imageTesting.png')
+    img = mpimg.imread('data/generated_rnn/imageTesting10x10.png')
     imgplot = plt.imshow(img)
     plt.show()
-    #plt.savefig('data/generated_rnn/imagesTesting.png')
+
 else:
     sample_image("Testing10x10", opt, generator, dataloader)
-    img = mpimg.imread('data/generated/imageTesting.png')
+    img = mpimg.imread('data/generated/imageTesting10x10.png')
     imgplot = plt.imshow(img)
     plt.show()
 
