@@ -134,7 +134,7 @@ def print_image_rnn(caption, opt, generator, dataset):
 
     gen_labels = np.random.randint(0, opt.n_classes, opt.batch_size - 1)
     gen_captions = [dataset.mapping[key] for key in gen_labels]
-    gen_captions = np.concatenate(np.array((caption,)), gen_captions)
+    gen_captions = [caption,] + gen_captions
 
     gen_encoded_captions = []
     for caption in gen_captions:

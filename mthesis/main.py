@@ -39,7 +39,7 @@ parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of firs
 
 parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
 
-parser.add_argument("--latent_dim", type=int, default=100, help="dimensionality of the latent space")
+parser.add_argument("--latent_dim", type=int, default=200, help="dimensionality of the latent space")
 parser.add_argument("--embedding_dim", type=int, default=128, help="dimensionality of the embedding space")
 parser.add_argument("--hidden_dim", type=int, default=256, help="dimensionality of the hidden space")
 
