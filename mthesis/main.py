@@ -1,6 +1,6 @@
 # Import the necessary modules
 import argparse
-import os
+import os, shutil
 import numpy as np
 
 import torch
@@ -147,16 +147,24 @@ myD = Path(d_model_file)
 myG_AUX = Path(g_model_fileAUX)
 myD_AUX = Path(d_model_fileAUX)
 
-if opt.pre_loading and myG.exists() and myD.exists():
-    generator.load_state_dict(torch.load(g_model_file))
-    discriminator.load_state_dict(torch.load(d_model_file))
-    print("Loaded PyTorch Model State for GENERATOR and DISCRIMINATOR FROM pth files")
-else:
-    if not opt.start_again and myG_AUX.exists() and myD_AUX.exists():
-        generator.load_state_dict(torch.load(g_model_fileAUX))
-        discriminator.load_state_dict(torch.load(d_model_fileAUX))
-    training_phase(generator, discriminator, opt, dataloader, dataset)
+try:
+    if opt.pre_loading and myG.exists() and myD.exists():
+        generator.load_state_dict(torch.load(g_model_file))
+        discriminator.load_state_dict(torch.load(d_model_file))
+        print("Loaded PyTorch Model State for GENERATOR and DISCRIMINATOR from pth files")
+    else:
+        if not opt.start_again and myG_AUX.exists() and myD_AUX.exists():
+            generator.load_state_dict(torch.load(g_model_fileAUX))
+            discriminator.load_state_dict(torch.load(d_model_fileAUX))
+        training_phase(generator, discriminator, opt, dataloader, dataset)
 
+except RuntimeError:
+    source = "models"
+    destination = "models/RuntimeErrorRecovered"
+    #os.makedirs(destination, exist_ok=True)
+    shutil.copytree(source, destination)
+    print("The previous models weights are saved in %s folder;\nThe training is restarted!" %destination)
+    training_phase(generator, discriminator, opt, dataloader, dataset)
 
 # Testing the results:
 if opt.testing:
