@@ -1,6 +1,6 @@
 # Import the necessary modules
 import argparse
-import os, shutil
+import os
 import numpy as np
 
 import torch
@@ -56,11 +56,11 @@ print(opt)
 img_shape = (opt.channels, opt.img_size, opt.img_size)
 
 # Check if we have GPU available
-cuda = True if torch.cuda.is_available() else False
-if cuda:
-    #%matplotlib inline
+if torch.cuda.is_available():
+    device = torch.device("cuda")
     print("CUDA available")
 else:
+    device = torch.device("cpu")
     print("CUDA not available")
 
 # Create the necessary directories
@@ -113,16 +113,11 @@ dataloader = torch.utils.data.DataLoader(
 # --------------------------------------
 if opt.caption_usage:
     vocab_size = len(dataset.encoded_vocab)
-    generator = RNN_Generator(vocab_size, opt, img_shape)
-    discriminator = RNN_Discriminator(vocab_size, opt, img_shape)
+    generator = RNN_Generator(vocab_size, opt, img_shape).to(device)
+    discriminator = RNN_Discriminator(vocab_size, opt, img_shape).to(device)
 else:
-    generator = Generator(opt, img_shape)
-    discriminator = Discriminator(opt, img_shape)
-
-if cuda:
-    generator.cuda()
-    discriminator.cuda()
-
+    generator = Generator(opt, img_shape).to(device)
+    discriminator = Discriminator(opt, img_shape).to(device)
 
 
 # ---------------
@@ -130,16 +125,16 @@ if cuda:
 # ---------------
 os.makedirs("models", exist_ok=True)
 
-if opt.caption_usage:
-    g_model_file = "models/generator_RNN.pth"
-    d_model_file = "models/discriminator_RNN.pth"
-    g_model_fileAUX = "models/AUXgenerator_RNN.pth"
-    d_model_fileAUX = "models/AUXdiscriminator_RNN.pth"
-else:
-    g_model_file = "models/generator.pth"
-    d_model_file = "models/discriminator.pth"
-    g_model_fileAUX = "models/AUXgenerator.pth"
-    d_model_fileAUX = "models/AUXdiscriminator.pth"
+paths = "models/RNN_MNIST" if opt.caption_usage else "models/MNIST"
+os.makedirs(paths, exist_ok=True)
+
+generator_name = f"generator{opt.latent_dim}L{opt.embedding_dim}E{opt.hidden_dim}H{opt.channels}x{opt.img_size}x{opt.img_size}"
+discriminator_name = f"discriminator{opt.latent_dim}L{opt.embedding_dim}E{opt.hidden_dim}H{opt.channels}x{opt.img_size}x{opt.img_size}"
+
+g_model_file = f"{paths}/{generator_name}.pth"
+d_model_file = f"{paths}/{discriminator_name}.pth"
+g_model_fileAUX = f"{paths}/auxiliaries/{generator_name}.pth"
+d_model_fileAUX = f"{paths}/auxiliaries/{discriminator_name}.pth"
 
 myG = Path(g_model_file)
 myD = Path(d_model_file)
@@ -147,35 +142,24 @@ myD = Path(d_model_file)
 myG_AUX = Path(g_model_fileAUX)
 myD_AUX = Path(d_model_fileAUX)
 
-try:
-    if opt.pre_loading and myG.exists() and myD.exists():
-        generator.load_state_dict(torch.load(g_model_file))
-        discriminator.load_state_dict(torch.load(d_model_file))
-        print("Loaded PyTorch Model State for GENERATOR and DISCRIMINATOR from pth files")
-    else:
-        if not opt.start_again and myG_AUX.exists() and myD_AUX.exists():
-            generator.load_state_dict(torch.load(g_model_fileAUX))
-            discriminator.load_state_dict(torch.load(d_model_fileAUX))
-        training_phase(generator, discriminator, opt, dataloader, dataset)
-
-except RuntimeError:
-    source = "models"
-    destination = "models/RuntimeErrorRecovered"
-    #os.makedirs(destination, exist_ok=True)
-    shutil.copytree(source, destination)
-    print("The previous models weights are saved in %s folder;\nThe training is restarted!" %destination)
+if opt.pre_loading and myG.exists() and myD.exists():
+    generator.load_state_dict(torch.load(g_model_file, map_location=device))
+    discriminator.load_state_dict(torch.load(d_model_file, map_location=device))
+    print("Loaded PyTorch Model State for GENERATOR and DISCRIMINATOR from .pth files")
+else:
+    if not opt.start_again and myG_AUX.exists() and myD_AUX.exists():
+        generator.load_state_dict(torch.load(g_model_fileAUX, map_location=device))
+        discriminator.load_state_dict(torch.load(d_model_fileAUX, map_location=device))
     training_phase(generator, discriminator, opt, dataloader, dataset)
+
 
 # Testing the results:
 if opt.testing:
     if opt.caption_usage:
         sample_image_rnn("END", opt, generator, dataloader, dataset)
-    else:
-        sample_image("END", opt, generator, dataloader)
-
-    if opt.caption_usage:
         print_image_rnn("this is eight", opt, generator, dataset)
     else:
+        sample_image("END", opt, generator, dataloader)
         print_image(8, opt, generator)
 
 
@@ -183,7 +167,6 @@ if opt.testing:
 # -------------
 # Saving model:
 # -------------
-
 torch.save(generator.state_dict(), g_model_file)
 print("Saved PyTorch Model State of GENERATOR to '%s'" %g_model_file)
 

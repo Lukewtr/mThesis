@@ -51,12 +51,12 @@ def training_phase(generator, discriminator, opt, dataloader, dataset):
     FloatTensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
     LongTensor = torch.cuda.LongTensor if cuda else torch.LongTensor
 
-    if opt.caption_usage:
-        g_model_fileAUX = "models/AUXgenerator_RNN.pth"
-        d_model_fileAUX = "models/AUXdiscriminator_RNN.pth"
-    else:
-        g_model_fileAUX = "models/AUXgenerator.pth"
-        d_model_fileAUX = "models/AUXdiscriminator.pth"
+    paths = "models/RNN_MNIST" if opt.caption_usage else "models/MNIST"
+    generator_name = f"generator{opt.latent_dim}L{opt.embedding_dim}E{opt.hidden_dim}H{opt.channels}x{opt.img_size}x{opt.img_size}"
+    discriminator_name = f"discriminator{opt.latent_dim}L{opt.embedding_dim}E{opt.hidden_dim}H{opt.channels}x{opt.img_size}x{opt.img_size}"
+
+    g_model_fileAUX = f"{paths}/auxiliaries/{generator_name}.pth"
+    d_model_fileAUX = f"{paths}/auxiliaries/{discriminator_name}.pth"
 
     for epoch in range(opt.n_epochs):
         for i, data in enumerate(dataloader):
