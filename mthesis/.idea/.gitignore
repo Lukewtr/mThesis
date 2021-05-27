@@ -2,5 +2,4 @@
 # Default ignored files
 /workspace.xml
 ../data/generated
-../models/RuntimeErrorRecovered
 ../testing.py
