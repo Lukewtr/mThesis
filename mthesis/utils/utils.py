@@ -11,12 +11,12 @@ LongTensor = torch.cuda.LongTensor if torch.cuda.is_available() else torch.LongT
 
 
 # Sample function:
-def sample_image(string, opt, generator, dataloader):
+def sample_image(string, opt, obj, generator, dataloader):
     """Saves a grid of generated digits ranging from 0 to n_classes"""
     n_row = 10
 
     # Sample noise
-    z = Variable(FloatTensor(np.random.normal(0, 1, (n_row ** 2, opt.latent_dim))))
+    z = Variable(FloatTensor(np.random.normal(0, 1, (n_row ** 2, obj.latent_dim))))
     # Get labels ranging from 0 to n_classes for n rows
     labels = np.array([num for _ in range(n_row) for num in range(n_row)])
     labels = Variable(LongTensor(labels))
@@ -51,15 +51,15 @@ def sample_image(string, opt, generator, dataloader):
     else:
         printed = '_CGAN'
 
-    save_image(gen_imgs.data, "data/generated/image%s.png" % printed, nrow=n_row, normalize=True)
+    save_image(gen_imgs.data, f"data/generated/MNIST/image{printed}.png", nrow=n_row, normalize=True)
 
 
-def sample_image_rnn(string, opt, generator, dataloader, dataset):
+def sample_image_rnn(string, opt, obj, generator, dataloader, dataset):
     """Saves a grid of generated digits ranging from 0 to n_classes"""
     n_row = 10
 
     # Sample noise
-    z = Variable(FloatTensor(np.random.normal(0, 1, (n_row ** 2, opt.latent_dim))))
+    z = Variable(FloatTensor(np.random.normal(0, 1, (n_row ** 2, obj.latent_dim))))
     # Get captions ranging from 0 to n_classes for n rows
     captions = [dataset.mapping[num] for _ in range(n_row) for num in range(n_row)]
 
@@ -104,17 +104,17 @@ def sample_image_rnn(string, opt, generator, dataloader, dataset):
     else:
         printed = '_RNN_CGAN'
 
-    save_image(gen_imgs.data, "data/generated_rnn/image%s.png" % printed, nrow=n_row, normalize=True)
+    save_image(gen_imgs.data, f"data/generated/RNN_MNIST/image{printed}.png", nrow=n_row, normalize=True)
 
 
 # Generating a single image conditioned on the given label:
-def print_image(label, opt, generator):
+def print_image(label, opt, obj, generator):
     if not isinstance(label, int):
         label = 0
 
-    z = Variable(FloatTensor(np.random.normal(0, 1, (opt.batch_size, opt.latent_dim))))
+    z = Variable(FloatTensor(np.random.normal(0, 1, (opt.batch_size, obj.latent_dim))))
     gen_labels = Variable(
-        LongTensor(np.concatenate((np.array((label,)), np.random.randint(0, opt.n_classes, opt.batch_size - 1)))))
+        LongTensor(np.concatenate((np.array((label,)), np.random.randint(0, obj.n_classes, opt.batch_size - 1)))))
 
     gen_imgs = generator(z, gen_labels)
 
@@ -126,13 +126,13 @@ def print_image(label, opt, generator):
 
 
 # Generating a single image conditioned on the given caption:
-def print_image_rnn(caption, opt, generator, dataset):
+def print_image_rnn(caption, opt, obj, generator, dataset):
     if not isinstance(caption, str):
         caption = "this is zero"
 
-    z = Variable(FloatTensor(np.random.normal(0, 1, (opt.batch_size, opt.latent_dim))))
+    z = Variable(FloatTensor(np.random.normal(0, 1, (opt.batch_size, obj.latent_dim))))
 
-    gen_labels = np.random.randint(0, opt.n_classes, opt.batch_size - 1)
+    gen_labels = np.random.randint(0, obj.n_classes, opt.batch_size - 1)
     gen_captions = [dataset.mapping[key] for key in gen_labels]
     gen_captions = [caption,] + gen_captions
 
