@@ -3,6 +3,39 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+from torch.utils.data import Dataset
+from torchvision import datasets
+
+
+# Dataset for captions used in RNN_MNIST:
+class rnnMNIST_Dataset(Dataset):
+
+    def __init__(self, root, train, download, transform):
+        self.mnist = datasets.MNIST(
+            root=root,
+            train=train,
+            download=download,
+            transform=transform
+        )
+
+        self.mapping = {0: "this is zero", 1: "this is one", 2: "this is two", 3: "this is three", 4: "this is four",
+                        5: "this is five", 6: "this is six", 7: "this is seven", 8: "this is eight",
+                        9: "this is nine"}
+
+        self.encoded_vocab = {"this": 0, "is": 1, "zero": 2, "one": 3, "two": 4, "three": 5, "four": 6,
+                              "five": 7, "six": 8, "seven": 9, "eight": 10, "nine": 11}
+
+    def __len__(self):
+        return len(self.mnist)
+
+    def __getitem__(self, index: int):
+        image, number = self.mnist[index]
+        caption = self.mapping[number]
+        encoded_caption = torch.tensor([self.encoded_vocab[word] for word in caption.split(" ")])
+
+        return image, caption, encoded_caption
+
+
 # Generator for RNN_CGAN:
 class RNNmnist_Generator(nn.Module):
     def __init__(self, architecture, image_shape):

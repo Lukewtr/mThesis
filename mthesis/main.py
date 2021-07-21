@@ -22,7 +22,6 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument("--model", type=str, default="RNN_MNIST", help="Chose the model you want to use among: MNIST, RNN_MNIST")
 
-#parser.add_argument("--testing", action="store_true", help="Set this flag if you want to display the testing features")
 parser.add_argument("--pre_loading", action="store_true", help="Set this flag if you want to use the saved pre-trained models")
 parser.add_argument("--start_again", action="store_true", help="Set this flag if you want to start again the training from random")
 
@@ -34,7 +33,7 @@ parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first 
 parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
 
 parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
-parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
+parser.add_argument("--img_size", type=int, default=(64,64), help="shape of each image dimension")
 
 parser.add_argument("--add_latent_dim", type=int, default=0, help="addditional dimensionalities of the latent space")
 parser.add_argument("--add_embedding_dim", type=int, default=0, help="addditional dimensionalities of the embedding space")
@@ -82,8 +81,13 @@ os.makedirs("models", exist_ok=True)
 paths = f"models/{opt.model}"
 os.makedirs(paths, exist_ok=True)
 
-generator_name = f"generator{obj.latent_dim}L{obj.embedding_dim}E{obj.hidden_dim}H{obj.channels}x{obj.img_size}x{obj.img_size}"
-discriminator_name = f"discriminator{obj.latent_dim}L{obj.embedding_dim}E{obj.hidden_dim}H{obj.channels}x{obj.img_size}x{obj.img_size}"
+if isinstance(obj.img_size, tuple):
+    generator_name = f"generator{obj.latent_dim}L{obj.embedding_dim}E{obj.hidden_dim}H{obj.channels}x{obj.img_size[0]}x{obj.img_size[1]}"
+    discriminator_name = f"discriminator{obj.latent_dim}L{obj.embedding_dim}E{obj.hidden_dim}H{obj.channels}x{obj.img_size[0]}x{obj.img_size[1]}"
+
+if isinstance(obj.img_size, int):
+    generator_name = f"generator{obj.latent_dim}L{obj.embedding_dim}E{obj.hidden_dim}H{obj.channels}x{obj.img_size}x{obj.img_size}"
+    discriminator_name = f"discriminator{obj.latent_dim}L{obj.embedding_dim}E{obj.hidden_dim}H{obj.channels}x{obj.img_size}x{obj.img_size}"
 
 g_model_file = f"{paths}/{generator_name}.pth"
 d_model_file = f"{paths}/{discriminator_name}.pth"
@@ -128,6 +132,10 @@ elif opt.model == "RNN_MNIST":
     img = mpimg.imread('data/generated/RNN_MNIST/imageEND.png')
     imgplot = plt.imshow(img)
     plt.show()
+
+# Generating a set of testing images:
+elif opt.model == "FLICKR8K":
+    pass
 
 else:
     # Default loaded model -> RNN_MNIST

@@ -3,36 +3,9 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import datasets
 from torch.autograd import Variable
+import torchvision.transforms as transforms
 import numpy as np
 from utils.utils import sample_image, sample_image_rnn
-
-# Dataset for captions
-class rnnMNIST_Dataset(Dataset):
-
-    def __init__(self, root, train, download, transform):
-        self.mnist = datasets.MNIST(
-            root=root,
-            train=train,
-            download=download,
-            transform=transform
-        )
-
-        self.mapping = {0: "this is zero", 1: "this is one", 2: "this is two", 3: "this is three", 4: "this is four",
-                        5: "this is five", 6: "this is six", 7: "this is seven", 8: "this is eight",
-                        9: "this is nine"}
-
-        self.encoded_vocab = {"this": 0, "is": 1, "zero": 2, "one": 3, "two": 4, "three": 5, "four": 6,
-                              "five": 7, "six": 8, "seven": 9, "eight": 10, "nine": 11}
-
-    def __len__(self):
-        return len(self.mnist)
-
-    def __getitem__(self, index: int):
-        image, number = self.mnist[index]
-        caption = self.mapping[number]
-        encoded_caption = torch.tensor([self.encoded_vocab[word] for word in caption.split(" ")])
-
-        return image, caption, encoded_caption
 
 
 def training_phase(obj, generator, discriminator, opt, dataloader, dataset):
@@ -57,15 +30,23 @@ def training_phase(obj, generator, discriminator, opt, dataloader, dataset):
 
     for epoch in range(opt.n_epochs):
         for i, data in enumerate(dataloader):
+            # Configure input
             if opt.model == "MNIST":
                 (imgs, labels) = data
+                discriminator_input = Variable(labels.type(LongTensor))
 
             elif opt.model == "RNN_MNIST":
                 (imgs, captions, encoded_captions) = data
+                discriminator_input = Variable(encoded_captions.type(LongTensor))
+
+            elif opt.model == "FLICKR8K":
+                (imgs, encoded_captions, lenghts) = data
+                discriminator_input = Variable(encoded_captions.type(LongTensor))
 
             else:
                 # Default loaded model -> RNN_MNIST
                 (imgs, captions, encoded_captions) = data
+                discriminator_input = Variable(encoded_captions.type(LongTensor))
 
             batch_size = imgs.shape[0]
 
@@ -73,18 +54,7 @@ def training_phase(obj, generator, discriminator, opt, dataloader, dataset):
             valid = Variable(FloatTensor(batch_size, 1).fill_(1.0), requires_grad=False)
             fake = Variable(FloatTensor(batch_size, 1).fill_(0.0), requires_grad=False)
 
-            # Configure input
             real_imgs = Variable(imgs.type(FloatTensor))
-            if opt.model == "MNIST":
-                discriminator_input = Variable(labels.type(LongTensor))
-
-            elif opt.model == "RNN_MNIST":
-                discriminator_input = Variable(encoded_captions.type(LongTensor))
-
-            else:
-                # Default loaded model -> RNN_MNIST
-                discriminator_input = Variable(encoded_captions.type(LongTensor))
-
 
             # -----------------
             #  Train Generator
@@ -105,6 +75,35 @@ def training_phase(obj, generator, discriminator, opt, dataloader, dataset):
                 gen_encoded_captions = []
                 for caption in gen_captions:
                     gen_encoded_captions.append(tuple([dataset.encoded_vocab[word] for word in caption.split(" ")]))
+
+                generator_input = Variable(
+                    LongTensor(
+                        gen_encoded_captions
+                    )
+                )
+
+            elif opt.model == "FLICKR8K":
+                gen_idx = np.random.randint(0, len(dataset.captions), batch_size)
+                gen_captions = dataset.captions[gen_idx]
+
+                gen_encoded_captions = []
+                gen_encoded_words = []
+                max_len = 0
+
+                for caption in gen_captions:
+                    words = caption.split(" ")
+
+                    l = len(words)
+                    if l > max_len: max_len = l
+
+                    encoded_words = [dataset.word_to_ix[word] for word in words]
+                    gen_encoded_words.append(encoded_words)
+
+                for words in gen_encoded_words:
+                    words = words + [0] * (max_len-len(words))
+                    gen_encoded_captions.append(words)
+
+                gen_encoded_captions = [[dataset.word_to_ix[word] for word in caption]]
 
                 generator_input = Variable(
                     LongTensor(
@@ -167,6 +166,9 @@ def training_phase(obj, generator, discriminator, opt, dataloader, dataset):
                     sample_image(printed, opt, obj, generator, dataloader)
                 elif opt.model == "RNN_MNIST":
                     sample_image_rnn(printed, opt, obj, generator, dataloader, dataset)
+                elif opt.model == "FLICKR8K":
+
+                    pass
                 else:
                     # Default loaded model -> RNN_MNIST
                     sample_image_rnn(printed, opt, obj, generator, dataloader, dataset)
