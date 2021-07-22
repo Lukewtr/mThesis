@@ -38,11 +38,9 @@ class flickr8k_Dataset(Dataset):
                 print("...unzipping...")
                 zipObj.extractall(path=f"{root}/dataset")
 
-                old_file_name = "/content/dataset/Flicker8k_Dataset"
-                new_file_name = "/content/dataset/Flickr8k_Dataset"
-
+                old_file_name = f'{self.folder}/dataset/Flicker8k_Dataset'
                 if Path(old_file_name).exists():
-                    os.rename(old_file_name, new_file_name)
+                    os.rename(old_file_name, dataset_name)
 
         print("Images AVAILABLE!!!")
 
