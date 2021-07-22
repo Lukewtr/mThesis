@@ -25,7 +25,7 @@ parser.add_argument("--model", type=str, default="FLICKR8K", help="Chose the mod
 parser.add_argument("--pre_loading", action="store_true", help="Set this flag if you want to use the saved pre-trained models")
 parser.add_argument("--start_again", action="store_true", help="Set this flag if you want to start again the training from random")
 
-parser.add_argument("--n_epochs", type=int, default=2, help="number of epochs of training")
+parser.add_argument("--n_epochs", type=int, default=1, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
 
 parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")

@@ -115,8 +115,11 @@ def sample_image_flickr(name, opt, obj, generator, dataloader, dataset):
     # Sample noise
     z = Variable(FloatTensor(np.random.normal(0, 1, (n_row ** 2, obj.latent_dim))))
     # Get captions ranging from 0 to n_classes for n rows
-    captions = [[dataset.captions[np.random.randint(1, len(dataset.vocab))] for _ in range(n_row)] for _ in range(n_row)]
-    
+    #captions = [[dataset.captions[np.random.randint(1, len(dataset.vocab))] for _ in range(n_row)] for _ in range(n_row)]
+    captions = [[["<start> A men wearing sunglasses sit on a bench <end>"],
+                 ["<start> Two men running in a park with blue shirts <end>"]],
+                [["<start> A girl playing guitar duirng a concert <end>"],
+                 ["<start> Three dogs run in the garden towards a red ball <end>"]]]
     #print("captions:", np.array(captions).shape, len(captions))
 
     gen_encoded_captions = []
