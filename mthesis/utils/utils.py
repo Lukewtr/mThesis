@@ -4,6 +4,7 @@ from torchvision.utils import save_image
 from torch.autograd import Variable
 import numpy as np
 import matplotlib.pyplot as plt
+import string
 
 
 FloatTensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
@@ -11,7 +12,7 @@ LongTensor = torch.cuda.LongTensor if torch.cuda.is_available() else torch.LongT
 
 
 # Sample function:
-def sample_image(string, opt, obj, generator, dataloader):
+def sample_image(name, opt, obj, generator, dataloader):
     """Saves a grid of generated digits ranging from 0 to n_classes"""
     n_row = 10
 
@@ -22,12 +23,12 @@ def sample_image(string, opt, obj, generator, dataloader):
     labels = Variable(LongTensor(labels))
     gen_imgs = generator(z, labels)
 
-    # Saving images in format "images<n_epoch>_<n_iter>" or "images<string>"
-    if isinstance(string, str):
-        printed = string
+    # Saving images in format "images<n_epoch>_<n_iter>" or "images<name>"
+    if isinstance(name, str):
+        printed = name
 
-    elif isinstance(string, tuple):
-        epoch, iteration = string
+    elif isinstance(name, tuple):
+        epoch, iteration = name
         max_epoch = opt.n_epochs
 
         epoch_s = str(epoch)
@@ -54,7 +55,7 @@ def sample_image(string, opt, obj, generator, dataloader):
     save_image(gen_imgs.data, f"data/generated/MNIST/image{printed}.png", nrow=n_row, normalize=True)
 
 
-def sample_image_rnn(string, opt, obj, generator, dataloader, dataset):
+def sample_image_rnn(name, opt, obj, generator, dataloader, dataset):
     """Saves a grid of generated digits ranging from 0 to n_classes"""
     n_row = 10
 
@@ -75,12 +76,12 @@ def sample_image_rnn(string, opt, obj, generator, dataloader, dataset):
 
     gen_imgs = generator(z, generator_input)
 
-    # Saving images in format "images<n_epoch>_<n_iter>" or "images<string>"
-    if isinstance(string, str):
-        printed = string
+    # Saving images in format "images<n_epoch>_<n_iter>" or "images<name>"
+    if isinstance(name, str):
+        printed = name
 
-    elif isinstance(string, tuple):
-        epoch, iteration = string
+    elif isinstance(name, tuple):
+        epoch, iteration = name
         max_epoch = opt.n_epochs
 
         epoch_s = str(epoch)
@@ -107,33 +108,66 @@ def sample_image_rnn(string, opt, obj, generator, dataloader, dataset):
     save_image(gen_imgs.data, f"data/generated/RNN_MNIST/image{printed}.png", nrow=n_row, normalize=True)
 
 
-def sample_image_flickr(string, opt, obj, generator, dataloader, dataset):
-    """Saves a grid of generated images
-    n_row = 10
+def sample_image_flickr(name, opt, obj, generator, dataloader, dataset):
+    #Saves a grid of generated images
+    n_row = 2
 
     # Sample noise
     z = Variable(FloatTensor(np.random.normal(0, 1, (n_row ** 2, obj.latent_dim))))
     # Get captions ranging from 0 to n_classes for n rows
-    captions = [dataset.mapping[num] for _ in range(n_row) for num in range(n_row)]
+    captions = [[dataset.captions[np.random.randint(1, len(dataset.vocab))] for _ in range(n_row)] for _ in range(n_row)]
+    
+    #print("captions:", np.array(captions).shape, len(captions))
 
     gen_encoded_captions = []
-    for caption in captions:
-        gen_encoded_captions.append(tuple([dataset.encoded_vocab[word] for word in caption.split(" ")]))
+    max_len = 0
+    for collect_caption in captions:
+        #print("collect_caption:", np.array(collect_caption).shape)
+        for [caption] in collect_caption:
+            #print("caption:", np.array(caption).shape)
+            line = []
+            for word in caption.lower().split(" "):
+                if word not in string.punctuation:
+                    if word.isdigit():
+                        for digit in word:
+                            line.append(dataset.fword_to_ix(digit.lower()))
+                    else:
+                        if "<start>" in word: line.append(dataset.fword_to_ix("<start>"))
+                        elif "<end>" in word: line.append(dataset.fword_to_ix("<end>"))
+                        else: line.append(dataset.fword_to_ix(word))
+            max_len = max(max_len, len(line))
+            gen_encoded_captions.append(line) # + [0] * (max_len-len(line)))
+    #print("gen_encoded_captions:", np.array(gen_encoded_captions).shape, len(gen_encoded_captions))
 
+    pad_encoded_captions = []
+    for cap in gen_encoded_captions:
+        pad_encoded_captions.append(cap + [0] * (max_len-len(cap)))
+
+    final_encoded_captions = []
+    for k in range(n_row):
+        sublist = pad_encoded_captions[k*n_row: (k+1)*n_row]
+        #print("Sublist:", len(sublist))
+        final_encoded_captions.append(sublist)
+
+    #print("final_encoded_captions:", np.array(final_encoded_captions).shape)
     generator_input = Variable(
         LongTensor(
-            gen_encoded_captions
+            final_encoded_captions
         )
     )
 
-    gen_imgs = generator(z, generator_input)
+    #print("generator_input:", generator_input.shape)
+    new_generator_input = torch.reshape(generator_input, (n_row**2, generator_input.shape[-1]))
+    #print("generator_input:", new_generator_input.shape)
 
-    # Saving images in format "images<n_epoch>_<n_iter>" or "images<string>"
-    if isinstance(string, str):
-        printed = string
+    gen_imgs = generator(z, new_generator_input)
 
-    elif isinstance(string, tuple):
-        epoch, iteration = string
+    # Saving images in format "images<n_epoch>_<n_iter>" or "images<name>"
+    if isinstance(name, str):
+        printed = name
+
+    elif isinstance(name, tuple):
+        epoch, iteration = name
         max_epoch = opt.n_epochs
 
         epoch_s = str(epoch)
@@ -155,10 +189,9 @@ def sample_image_flickr(string, opt, obj, generator, dataloader, dataset):
             printed = printed + char
 
     else:
-        printed = '_RNN_CGAN'
+        printed = '_FLICKR_CGAN'
 
-    save_image(gen_imgs.data, f"data/generated/RNN_MNIST/image{printed}.png", nrow=n_row, normalize=True)"""
-    pass
+    save_image(gen_imgs.data, f"data/generated/FLICKR8K/image{printed}.png", nrow=n_row, normalize=True)
 
 
 # Generating a single image conditioned on the given label:

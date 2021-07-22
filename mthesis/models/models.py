@@ -48,7 +48,7 @@ def dataset_factory(parser):
 
     elif model_name == "FLICKR8K":
         dataset = flickr8k_Dataset
-        folder = "/data/flickr8k"
+        folder = "data/flickr8k"
 
         dict_args = {
             "root": folder,
@@ -88,10 +88,7 @@ def dataset_factory(parser):
             targets = torch.zeros(len(captions), max(lengths)).long()
             for i, cap in enumerate(captions):
                 end = lengths[i]
-                # for j in range(end):
-                #    targets[i, j] = cap[j]
                 targets[i, :end] = cap[:end]
-                # targets[i, :end] = torch.from_numpy(np.array(list(map(ord, cap[:end])))).to(torch.long)      
             return images, targets, lengths
 
     else:
@@ -161,8 +158,8 @@ class Mnist_Model:
         self.architecture = (self.n_classes, self.latent_dim, self.embedding_dim, self.hidden_dim)
 
         self.channels = 1
-        self.img_size = parser.img_size
-        self.img_shape = (self.channels, self.img_size, self.img_size)
+        self.img_size = parser.img_size[0]
+        self.img_shape = (self.channels, parser.img_size[0], parser.img_size[1])
 
     def modelling(self):
         generator = mnist_Generator(self.architecture, self.img_shape)
@@ -184,8 +181,8 @@ class RNNmnist_Model:
         self.architecture = (self.vocab_size, self.latent_dim, self.embedding_dim, self.hidden_dim)
 
         self.channels = 1
-        self.img_size = parser.img_size
-        self.img_shape = (self.channels, self.img_size[0], self.img_size[1])
+        self.img_size = parser.img_size[0]
+        self.img_shape = (self.channels, parser.img_size[0], parser.img_size[1])
 
     def modelling(self):
         generator = RNNmnist_Generator(self.architecture, self.img_shape)
@@ -205,12 +202,12 @@ class Flickr8k_Model:
         self.hidden_dim = 256 + self.opt.add_hidden_dim
         self.architecture = (self.vocab_size, self.latent_dim, self.embedding_dim, self.hidden_dim)
 
-        self.channels = 1
-        self.img_size = parser.img_size
-        self.img_shape = (self.channels, self.img_size[0], self.img_size[1])
+        self.channels = 3
+        self.img_size = parser.img_size[0]
+        self.img_shape = (self.channels, parser.img_size[0], parser.img_size[1])
 
     def modelling(self):
-        generator = None
-        discriminator = None
+        generator = RNNmnist_Generator(self.architecture, self.img_shape)
+        discriminator = RNNmnist_Discriminator(self.architecture, self.img_shape)
         model = generator, discriminator
         return model

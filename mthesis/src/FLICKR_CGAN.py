@@ -8,6 +8,7 @@ import os
 from urllib import request
 from zipfile import ZipFile
 from PIL import Image
+from pathlib import Path
 
 from torch.utils.data import Dataset
 
@@ -18,21 +19,33 @@ class flickr8k_Dataset(Dataset):
         self.folder = root
 
         # Images:
+        print("Accessing url database for downloading images:")
         url_dataset = "https://github.com/jbrownlee/Datasets/releases/download/Flickr8k/Flickr8k_Dataset.zip"
-        dataset_name = f'{self.folder}/dataset/Flickr8k_Dataset.zip'
+        dataset_name = f'{self.folder}/dataset/Flickr8k_Dataset'
+        dataset_name_zip = f'{dataset_name}.zip'
         os.makedirs(f"{self.folder}/dataset", exist_ok=True)
-        request.urlretrieve(url_dataset, dataset_name)
-        with ZipFile(dataset_name, 'r') as zipObj:
-            # Extract all the contents of zip file in current directory
-            zipObj.extractall(path=f"{root}/dataset")
+
+        downloaded_dataset = Path(dataset_name_zip)
+        if not downloaded_dataset.exists():
+            print("...downloading...")
+            request.urlretrieve(url_dataset, dataset_name_zip)
+        print("Images download COMPLETED!!!")
+
+        downloaded_dataset = Path(dataset_name)
+        if not downloaded_dataset.exists():
+            with ZipFile(dataset_name_zip, 'r') as zipObj:
+                # Extract all the contents of zip file in current directory
+                print("...unzipping...")
+                zipObj.extractall(path=f"{root}/dataset")
+        print("Images AVAILABLE!!!")
 
         # Captions:
         # -Flickr30k:
-        with open(f'{self.folder}/ann_file/captions.csv') as csv_file:
+        with open(f'{self.folder}/ann_file/captions.csv', encoding='utf8') as csv_file:
             reader = csv.reader(csv_file)
-            captions = list(reader)
+            captions = [st for st in reader]
             csv_file.close()
-        self.captions = [cap for [cap] in captions]
+        self.captions = captions
 
         # -Flickr8k:
         self.len_vocab = 6067
@@ -97,6 +110,12 @@ class flickr8k_Dataset(Dataset):
 
         self.target_transform = target_transform
 
+    def fword_to_ix(self, word):
+        if word in self.vocab:
+            return int(self.word_to_ix[word])
+        else:
+            return int(self.word_to_ix["UNK"])
+
     def __len__(self):
         return len(self.caps_id)
 
@@ -104,7 +123,7 @@ class flickr8k_Dataset(Dataset):
         img_id = self.imgs_id[index // 5]
 
         # Images:
-        img = Image.open(f"{self.fodler}/dataset/Flicker8k_Dataset/{img_id}").convert('RGB')
+        img = Image.open(f"{self.folder}/dataset/Flickr8k_Dataset/{img_id}").convert('RGB')
         if self.transform:
             img = self.transform(img)
 
@@ -113,7 +132,7 @@ class flickr8k_Dataset(Dataset):
 
         emb_caption = []
         for word in target:
-            emb_caption.append(self.word_to_ix[word]) if word in self.vocab else emb_caption.append(self.word_to_ix["UNK"])
+            emb_caption.append(self.fword_to_ix(word))
 
         if self.target_transform:
             emb_caption = self.target_transform(emb_caption)

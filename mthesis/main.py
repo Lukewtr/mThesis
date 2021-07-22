@@ -11,7 +11,7 @@ import matplotlib.image as mpimg
 from pathlib import Path
 
 from src.Training import training_phase
-from utils.utils import sample_image, sample_image_rnn, print_image, print_image_rnn
+from utils.utils import sample_image, sample_image_rnn, sample_image_flickr, print_image, print_image_rnn
 from models.models import dataset_factory
 
 
@@ -20,12 +20,12 @@ from models.models import dataset_factory
 # ------------------------
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--model", type=str, default="RNN_MNIST", help="Chose the model you want to use among: MNIST, RNN_MNIST")
+parser.add_argument("--model", type=str, default="FLICKR8K", help="Chose the model you want to use among: MNIST, RNN_MNIST, FLICKR8K")
 
 parser.add_argument("--pre_loading", action="store_true", help="Set this flag if you want to use the saved pre-trained models")
 parser.add_argument("--start_again", action="store_true", help="Set this flag if you want to start again the training from random")
 
-parser.add_argument("--n_epochs", type=int, default=1, help="number of epochs of training")
+parser.add_argument("--n_epochs", type=int, default=2, help="number of epochs of training")
 parser.add_argument("--batch_size", type=int, default=64, help="size of the batches")
 
 parser.add_argument("--lr", type=float, default=0.0002, help="adam: learning rate")
@@ -135,7 +135,10 @@ elif opt.model == "RNN_MNIST":
 
 # Generating a set of testing images:
 elif opt.model == "FLICKR8K":
-    pass
+    sample_image_flickr("END", opt, obj, generator, dataloader, dataset)
+    img = mpimg.imread('data/generated/FLICKR8K/imageEND.png')
+    imgplot = plt.imshow(img)
+    plt.show()
 
 else:
     # Default loaded model -> RNN_MNIST
