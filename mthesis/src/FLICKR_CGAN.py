@@ -60,6 +60,10 @@ class flickr8k_Dataset(Dataset):
                 line = caption.lower().replace("\t", " ").split(" ")
                 img_id, n_cap = line[0].split("#")
 
+                if "jpg" != img_id[-3:]:
+                    caption = f.readline()
+                    continue
+
                 if n_cap == "0":
                     imgs_id.append(img_id)
 
@@ -106,6 +110,8 @@ class flickr8k_Dataset(Dataset):
         self.imgs_id = imgs_id
         self.caps_id = caps_id
 
+        print(len(imgs_id), len(caps_id))
+
         self.transform = transform
 
         self.target_transform = target_transform
@@ -121,7 +127,9 @@ class flickr8k_Dataset(Dataset):
 
     def __getitem__(self, index: int):
         img_id = self.imgs_id[index // 5]
-
+        if "jpg" in img_id:
+            while 'jpg' != img_id[-3:]:
+                img_id = img_id[:-1]
         # Images:
         img = Image.open(f"{self.folder}/dataset/Flickr8k_Dataset/{img_id}").convert('RGB')
         if self.transform:
